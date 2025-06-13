@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import '../../controllers/restaurant_controller.dart';
-import '../../models/restaurant_model.dart';
+import '../../controllers/business_controller.dart'; // optional, if used
+import '../../models/business_model.dart'; // optional, if used
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -10,14 +10,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _searchText = '';
-  final DatabaseReference _restaurantsRef =
-  FirebaseDatabase.instance.ref().child('restaurants');
+  final DatabaseReference _businessRef =
+  FirebaseDatabase.instance.ref().child('businesses');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Nearby Restaurants'),
+        title: Text('Nearby Businesses'),
         actions: [
           IconButton(
             icon: Icon(Icons.person),
@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search Restaurants...',
+                hintText: 'Search businesses...',
                 fillColor: Colors.white,
                 filled: true,
                 prefixIcon: Icon(Icons.search),
@@ -44,33 +44,35 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: StreamBuilder<DatabaseEvent>(
-        stream: _restaurantsRef.onValue,
+        stream: _businessRef.onValue,
         builder: (context, snapshot) {
           if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
             return Center(child: CircularProgressIndicator());
           }
 
           final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-          final restaurantList = data.entries
+          final businessList = data.entries
               .map((entry) => {
             'id': entry.key,
             ...Map<String, dynamic>.from(entry.value),
           })
-              .where((restaurant) =>
-              (restaurant['name'] ?? '')
+              .where((business) =>
+              (business['name'] ?? '')
                   .toLowerCase()
                   .contains(_searchText))
               .toList();
 
           return ListView.builder(
-            itemCount: restaurantList.length,
+            itemCount: businessList.length,
             itemBuilder: (context, index) {
-              final restaurant = restaurantList[index];
+              final business = businessList[index];
               return ListTile(
-                title: Text(restaurant['name']),
-                subtitle: Text(restaurant['location'] ?? ''),
+                title: Text(business['name'] ?? 'Unnamed'),
+                subtitle: Text(business['category'] ?? 'No category'),
                 onTap: () => Navigator.pushNamed(
-                    context, '/restaurant/${restaurant['id']}'),
+                  context,
+                  '/business/${business['id']}',
+                ),
               );
             },
           );
