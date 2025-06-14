@@ -62,18 +62,36 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       return;
     }
 
-    await _reviewsRef.push().set({
+    final newReview = {
       'text': text,
       'rating': _rating,
       'timestamp': DateTime.now().toIso8601String(),
-    });
+    };
 
+    // Save the review
+    await _reviewsRef.push().set(newReview);
+
+    // Reload reviews and clear form
     _reviewController.clear();
     setState(() => _rating = 3.0);
-    _loadReviews();
+    await _loadReviews();
+
+    // 🔁 Recalculate average
+    double total = 0.0;
+    int count = _reviews.length;
+
+    for (final review in _reviews) {
+      total += (review['rating'] ?? 0).toDouble();
+    }
+
+    double avgRating = count > 0 ? total / count : 0.0;
+
+    // Save average rating to business node
+    await _businessRef.update({'averageRating': avgRating});
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Review submitted')));
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -23,6 +23,14 @@
           }
         },
         {
+          "client_id": "120736210659-k84vj79jcufq9d27ct0jg6jllm9dckg1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.semesterproject",
+            "certificate_hash": "2cd7f35564e64995846172ee7b2c819fd70967a6"
+          }
+        },
+        {
           "client_id": "120736210659-p6njo1u4m2n5kl8c63h578t95kod654o.apps.googleusercontent.com",
           "client_type": 3
         }
