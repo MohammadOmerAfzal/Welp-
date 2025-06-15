@@ -6,7 +6,7 @@ class UserController {
   final DatabaseReference _db = FirebaseDatabase.instance.ref().child('users');
 
   Future<User?> getUser(String userId) async {
-    final ref = FirebaseDatabase.instance.ref('users/$userId');
+    final ref = _db.child(userId);
     final snapshot = await ref.get();
     if (snapshot.exists) {
       return User.fromMap(Map<String, dynamic>.from(snapshot.value as Map));
@@ -15,27 +15,34 @@ class UserController {
   }
 
 
-  Future<void> updateFavorites(String username, List<String> favorites) async {
+  Future<void> updateFavorites(String userId, List<String> favorites) async {
+    if (userId.isEmpty) {
+      print('❌ Invalid username: Cannot update favorites.');
+      return;
+    }
     try {
-      await _db.child(username).update({'favorites': favorites});
+      await _db.child(userId).update({'favorites': favorites});
+      print('🔥 Writing favorites to: /users/$userId/favorites');
+
     } catch (e) {
       print('Error updating favorites: $e');
     }
   }
 
-  Future<void> toggleFavorite(String username, String businessId, List<String> currentFavorites) async {
+
+  Future<void> toggleFavorite(String userId, String businessId, List<String> currentFavorites) async {
     final updatedFavorites = List<String>.from(currentFavorites);
     if (updatedFavorites.contains(businessId)) {
       updatedFavorites.remove(businessId);
     } else {
       updatedFavorites.add(businessId);
     }
-    await updateFavorites(username, updatedFavorites);
+    await updateFavorites(userId, updatedFavorites);
   }
 
   Future<void> updateUser(User user) async {
     try {
-      await _db.child(user.username).set(user.toMap());
+      await _db.child(user.userId).set(user.toMap());
     } catch (e) {
       print('Error updating user: $e');
     }

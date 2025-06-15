@@ -53,6 +53,7 @@ class AuthController {
       if (!userSnapshot.exists) {
         print('🆕 New user — creating record');
         await userRef.set({
+          'userId': UserSession.userId,
           'username': UserSession.userName,
           'email': UserSession.userEmail,
           'password': '',

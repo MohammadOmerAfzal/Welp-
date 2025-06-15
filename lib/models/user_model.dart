@@ -1,4 +1,5 @@
 class User {
+  final String userId;
   final String username;
   final String password;
   final Map<String, String> reviews; // businessId -> reviewText
@@ -8,6 +9,7 @@ class User {
   final int userType;
 
   User({
+    required this.userId,
     required this.username,
     required this.password,
     this.reviews = const {},
@@ -21,6 +23,7 @@ class User {
 
   Map<String, dynamic> toMap() {
     return {
+      'userId': userId,
       'username': username,
       'password': password,
       'reviews': reviews,
@@ -33,6 +36,7 @@ class User {
 
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
+      userId: map['userId'] ?? '',
       username: map['username'] ?? '',
       password: map['password'] ?? '',
       reviews: Map<String, String>.from(map['reviews'] ?? {}),
@@ -44,6 +48,7 @@ class User {
   }
 
   User copyWith({
+    String? userId,
     String? username,
     String? password,
     Map<String, String>? reviews,
@@ -53,6 +58,7 @@ class User {
     int? userType,
   }) {
     return User(
+      userId: userId ?? this.userId,
       username: username ?? this.username,
       password: password ?? this.password,
       reviews: reviews ?? this.reviews,

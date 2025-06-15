@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:math';
-
 import '../../models/user_model.dart';
 import '../../controllers/user_controller.dart';
 import '../../models/user_session.dart';
@@ -18,14 +17,11 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchText = '';
   String _selectedTab = 'Our picks';
   String? _selectedCategory;
-
   final DatabaseReference _businessRef =
   FirebaseDatabase.instance.ref().child('businesses');
-
   Position? _currentPosition;
   late User _user;
   Set<String> _availableCategories = {};
-
   final UserController _userController = UserController();
 
   @override
@@ -50,15 +46,41 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _currentPosition = position);
   }
 
-  Future<void> _toggleFavorite(String businessId) async {
-    await _userController.toggleFavorite(_user.username, businessId, _user.favorites);
-    // Fetch the updated user after toggle
-    final updatedUser = await _userController.getUser(_user.username);
+  // Optimistic toggle — update UI instantly, then sync with Firebase
+  void _toggleFavorite(String businessId) {
+    final isCurrentlyFavorite = _user.favorites.contains(businessId);
+
+    // 🔁 Immediately update local state
     setState(() {
-      _user = updatedUser!;
+      _user = _user.copyWith(
+        favorites: isCurrentlyFavorite
+            ? _user.favorites.where((id) => id != businessId).toList()
+            : [..._user.favorites, businessId],
+      );
     });
+
+    // 🟡 Run Firebase update in background
+    _performToggleFavorite(businessId, isCurrentlyFavorite);
   }
 
+  Future<void> _performToggleFavorite(
+      String businessId, bool isCurrentlyFavorite) async {
+    try {
+      await _userController.toggleFavorite(_user.userId, businessId, _user.favorites);
+    } catch (e) {
+      // Revert UI if Firebase fails
+      setState(() {
+        _user = _user.copyWith(
+          favorites: isCurrentlyFavorite
+              ? [..._user.favorites, businessId]
+              : _user.favorites.where((id) => id != businessId).toList(),
+        );
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to update favorites: $e")),
+      );
+    }
+  }
 
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
     const double R = 6371;
@@ -179,9 +201,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   'id': entry.key,
                   ...Map<String, dynamic>.from(entry.value),
                 })
-                    .where((business) => (business['name'] ?? '')
-                    .toLowerCase()
-                    .contains(_searchText))
+                    .where((business) =>
+                    (business['name'] ?? '').toLowerCase().contains(_searchText))
                     .toList();
 
                 _availableCategories = businessList
@@ -219,8 +240,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     return b;
                   }).toList();
 
-                  businessList.sort((a, b) =>
-                      (a['distance'] as double).compareTo(b['distance'] as double));
+                  businessList.sort((a, b) => (a['distance'] as double)
+                      .compareTo(b['distance'] as double));
                 }
 
                 return ListView.builder(
