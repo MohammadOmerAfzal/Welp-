@@ -4,7 +4,9 @@ class Review {
   String userName;
   double rating;
   String comment;
-  String imageUrl;
+  final String? imageUrl; // Nullable
+  final String timestamp;
+
   String? reply;
 
   Review({
@@ -13,8 +15,9 @@ class Review {
     required this.userName,
     required this.rating,
     required this.comment,
-    required this.imageUrl,
+    this.imageUrl,
     this.reply,
+    required this.timestamp,
   });
 
   factory Review.fromMap(Map<String, dynamic> data, String docId) {
@@ -25,7 +28,7 @@ class Review {
       rating: (data['rating'] ?? 0).toDouble(),
       comment: data['comment'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
-      reply: data['reply'],
+      reply: data['reply'] ?? ' ', timestamp: data['timestamp'] ?? '',
     );
   }
 
@@ -36,6 +39,7 @@ class Review {
       'rating': rating,
       'comment': comment,
       'imageUrl': imageUrl,
+      'timestamp': timestamp,
       if (reply != null) 'reply': reply,
     };
   }

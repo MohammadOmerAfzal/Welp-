@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+
+import '../../controllers/review_controller.dart';
+import '../../models/review_model.dart';
 import '../../models/user_session.dart';
+
 
 class BusinessDetailScreen extends StatefulWidget {
   final String businessId;
+
   const BusinessDetailScreen({required this.businessId});
 
   @override
@@ -14,18 +19,31 @@ class BusinessDetailScreen extends StatefulWidget {
 }
 
 class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
+  String _formatTimestamp(String? timestamp) {
+    if (timestamp == null || timestamp.isEmpty) return 'Unknown date';
+
+    try {
+      final date = DateTime.parse(timestamp).toLocal();
+      return '${date.year}-${_twoDigits(date.month)}-${_twoDigits(date.day)}';
+    } catch (e) {
+      print('Invalid timestamp format: $timestamp');
+      return 'Unknown date';
+    }
+  }
+
+  String _twoDigits(int n) => n.toString().padLeft(2, '0');
+
   late DatabaseReference _businessRef;
-  late DatabaseReference _reviewsRef;
   Map<String, dynamic>? _business;
   final TextEditingController _reviewController = TextEditingController();
   double _rating = 3.0;
-  List<Map<String, dynamic>> _reviews = [];
+  List<Review> _reviews = [];
+  final ReviewController _reviewControllerLogic = ReviewController();
 
   @override
   void initState() {
     super.initState();
     _businessRef = FirebaseDatabase.instance.ref().child('businesses').child(widget.businessId);
-    _reviewsRef = FirebaseDatabase.instance.ref().child('reviews').child(widget.businessId);
     _loadBusiness();
     _loadReviews();
   }
@@ -40,67 +58,51 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   Future<void> _loadReviews() async {
-    final snapshot = await _reviewsRef.get();
-    if (snapshot.exists) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      final list = data.entries.map((e) {
-        final review = Map<String, dynamic>.from(e.value);
-        review['id'] = e.key;
-        return review;
-      }).toList();
-
-      setState(() {
-        _reviews = list.reversed.toList();
-      });
-    }
+    final reviews = await _reviewControllerLogic.fetchReviews(widget.businessId);
+    setState(() {
+      _reviews = reviews.reversed.toList(); // latest first
+    });
   }
 
   Future<void> _submitReview() async {
-    final userId = UserSession.userId;
-    final userName = UserSession.userName;
+    final comment = _reviewController.text.trim();
 
-    if (userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('You must be logged in to post a review')));
-      return;
-    }
-
-    final text = _reviewController.text.trim();
-    if (text.isEmpty) {
+    if (comment.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter review text')));
       return;
     }
 
-    final newReview = {
-      'text': text,
-      'rating': _rating,
-      'timestamp': DateTime.now().toIso8601String(),
-      'userId': userId,
-      'userName': userName,
-    };
+    final userId = UserSession.userId;
+    final userName = UserSession.userName;
 
-    await _reviewsRef.push().set(newReview);
+    final review = Review(
+      comment: comment,
+      rating: _rating,
+      userId: userId,
+      userName: userName,
+      timestamp: DateTime.now().toIso8601String(),
+      id: '',
+    );
 
-    // Also store the review under the user's own node
-    final userReviewRef = FirebaseDatabase.instance
-        .ref()
-        .child('users/$userId/reviews/${widget.businessId}');
-    await userReviewRef.set(text);
-
+    await _reviewControllerLogic.addReview(widget.businessId, userId, review);
     _reviewController.clear();
     setState(() => _rating = 3.0);
     await _loadReviews();
+    await _updateAverageRating();
 
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Review submitted')));
+  }
+
+  Future<void> _updateAverageRating() async {
     double total = 0.0;
     int count = _reviews.length;
 
     for (final review in _reviews) {
-      total += (review['rating'] ?? 0).toDouble();
+      total += review.rating;
     }
 
     double avgRating = count > 0 ? total / count : 0.0;
     await _businessRef.update({'averageRating': avgRating});
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Review submitted')));
   }
 
   @override
@@ -207,18 +209,19 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               itemCount: _reviews.length,
               itemBuilder: (context, index) {
                 final r = _reviews[index];
-                final timestamp = r['timestamp'] ?? '';
-                final rating = r['rating']?.toDouble() ?? 0.0;
-                final reviewer = r['userName'] ?? 'Anonymous';
+                final rating = r.rating ?? 0.0;
+
+                final formattedDate = _formatTimestamp(r.timestamp);
+
 
                 return Card(
                   margin: EdgeInsets.symmetric(vertical: 6),
                   child: ListTile(
-                    title: Text(r['text'] ?? ''),
+                    title: Text(r.comment ?? ''),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('By: $reviewer'),
+                        SizedBox(height: 4),
                         RatingBarIndicator(
                           rating: rating,
                           itemCount: 5,
@@ -226,7 +229,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           itemBuilder: (context, _) => Icon(Icons.star, color: Colors.amber),
                         ),
                         SizedBox(height: 4),
-                        Text(timestamp.toString(), style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text('By ${r.userName ?? 'Anonymous'} • $formattedDate',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                       ],
                     ),
                   ),
