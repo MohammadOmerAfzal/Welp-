@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:typed_data';
+
 
 class AdminPanelScreen extends StatefulWidget {
   @override
@@ -34,6 +36,80 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     }
   }
 
+  Widget _buildBusinessTile(Map<String, dynamic> data) {
+    final name = data['name'] ?? 'Unnamed';
+    final lat = data['latitude'];
+    final lng = data['longitude'];
+    final imageList = data['images'] as List<dynamic>?;
+
+    Widget imageWidget = Icon(Icons.image_not_supported);
+    if (imageList != null && imageList.isNotEmpty) {
+      imageWidget = FutureBuilder<Uint8List>(
+        future: Future(() => base64Decode(imageList.first)),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return SizedBox(
+              width: 50,
+              height: 50,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            );
+          } else if (snapshot.hasError || !snapshot.hasData) {
+            return Icon(Icons.broken_image);
+          } else {
+            return Image.memory(snapshot.data!, width: 50, height: 50, fit: BoxFit.cover);
+          }
+        },
+      );
+    }
+
+
+    return Card(
+      child: ListTile(
+        leading: imageWidget,
+        title: Text(name),
+        subtitle: Text(
+          (lat != null && lng != null)
+              ? 'Lat: ${lat.toStringAsFixed(4)}, Lng: ${lng.toStringAsFixed(4)}'
+              : 'Location: Not available',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserTile(String uid, Map<String, dynamic> data) {
+    final name = data['name'] ?? 'Unknown';
+    final email = data['email'] ?? 'No email';
+    final isAdmin = data['isAdmin'] == true;
+    final isOwner = data['isOwner'] == true;
+
+    return Card(
+      child: ListTile(
+        title: Text(name),
+        subtitle: Text(email),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: 'Make Admin',
+              icon: Icon(Icons.admin_panel_settings, color: isAdmin ? Colors.green : Colors.grey),
+              onPressed: () => _updateUserRole(uid, isAdmin: true, isOwner: false),
+            ),
+            IconButton(
+              tooltip: 'Make Owner',
+              icon: Icon(Icons.store_mall_directory, color: isOwner ? Colors.orange : Colors.grey),
+              onPressed: () => _updateUserRole(uid, isAdmin: false, isOwner: true),
+            ),
+            IconButton(
+              tooltip: 'Make Normal User',
+              icon: Icon(Icons.person_off),
+              onPressed: () => _updateUserRole(uid, isAdmin: false, isOwner: false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,9 +133,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             StreamBuilder<DatabaseEvent>(
               stream: _businessesRef.onValue,
               builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
                 if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
                   return Center(child: Text('No businesses found.'));
                 }
+
 
                 final businesses = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
                 final list = businesses.entries.toList();
@@ -69,45 +149,25 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   physics: NeverScrollableScrollPhysics(),
                   itemCount: list.length,
                   itemBuilder: (context, index) {
-                    final key = list[index].key;
                     final data = Map<String, dynamic>.from(list[index].value);
-                    final base64Image = data['image'];
-                    final name = data['name'] ?? 'Unnamed';
-                    final lat = data['latitude'];
-                    final lng = data['longitude'];
-
-                    return Card(
-                      child: ListTile(
-                        title: Text(name),
-                        subtitle: Text(
-                          (lat != null && lng != null)
-                              ? 'Lat: ${lat.toStringAsFixed(4)}, Lng: ${lng.toStringAsFixed(4)}'
-                              : 'Location: Not available',
-                        ),
-                        leading: base64Image != null
-                            ? Image.memory(
-                          base64Decode(base64Image),
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                        )
-                            : Icon(Icons.image_not_supported),
-                      ),
-                    );
+                    return _buildBusinessTile(data);
                   },
                 );
               },
             ),
-
             Divider(height: 40),
             Text('👥 User Management', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 10),
             StreamBuilder<DatabaseEvent>(
               stream: _usersRef.onValue,
               builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
                 if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
                   return Center(child: Text('No users found.'));
                 }
+
 
                 final users = Map<String, dynamic>.from(snapshot.data!.snapshot.value as Map);
                 final entries = users.entries.toList();
@@ -119,42 +179,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   itemBuilder: (context, index) {
                     final uid = entries[index].key;
                     final data = Map<String, dynamic>.from(entries[index].value);
-                    final name = data['name'] ?? 'Unknown';
-                    final email = data['email'] ?? 'No email';
-                    final isAdmin = data['isAdmin'] == true;
-                    final isOwner = data['isOwner'] == true;
-
-                    return Card(
-                      child: ListTile(
-                        title: Text(name),
-                        subtitle: Text(email),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              tooltip: 'Make Admin',
-                              icon: Icon(Icons.admin_panel_settings,
-                                  color: isAdmin ? Colors.green : Colors.grey),
-                              onPressed: () =>
-                                  _updateUserRole(uid, isAdmin: true, isOwner: false),
-                            ),
-                            IconButton(
-                              tooltip: 'Make Owner',
-                              icon: Icon(Icons.store_mall_directory,
-                                  color: isOwner ? Colors.orange : Colors.grey),
-                              onPressed: () =>
-                                  _updateUserRole(uid, isAdmin: false, isOwner: true),
-                            ),
-                            IconButton(
-                              tooltip: 'Make Normal User',
-                              icon: Icon(Icons.person_off),
-                              onPressed: () =>
-                                  _updateUserRole(uid, isAdmin: false, isOwner: false),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildUserTile(uid, data);
                   },
                 );
               },
