@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import '../../models/user_session.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
   final String businessId;
-
   const BusinessDetailScreen({required this.businessId});
 
   @override
@@ -18,7 +18,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   late DatabaseReference _reviewsRef;
   Map<String, dynamic>? _business;
   final TextEditingController _reviewController = TextEditingController();
-  double _rating = 0.0;
+  double _rating = 3.0;
   List<Map<String, dynamic>> _reviews = [];
 
   @override
@@ -50,12 +50,20 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       }).toList();
 
       setState(() {
-        _reviews = list.reversed.toList(); // latest first
+        _reviews = list.reversed.toList();
       });
     }
   }
 
   Future<void> _submitReview() async {
+    final userId = UserSession.userId;
+    final userName = UserSession.userName;
+
+    if (userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('You must be logged in to post a review')));
+      return;
+    }
+
     final text = _reviewController.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter review text')));
@@ -66,17 +74,22 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       'text': text,
       'rating': _rating,
       'timestamp': DateTime.now().toIso8601String(),
+      'userId': userId,
+      'userName': userName,
     };
 
-    // Save the review
     await _reviewsRef.push().set(newReview);
 
-    // Reload reviews and clear form
+    // Also store the review under the user's own node
+    final userReviewRef = FirebaseDatabase.instance
+        .ref()
+        .child('users/$userId/reviews/${widget.businessId}');
+    await userReviewRef.set(text);
+
     _reviewController.clear();
     setState(() => _rating = 3.0);
     await _loadReviews();
 
-    // 🔁 Recalculate average
     double total = 0.0;
     int count = _reviews.length;
 
@@ -85,13 +98,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     }
 
     double avgRating = count > 0 ? total / count : 0.0;
-
-    // Save average rating to business node
     await _businessRef.update({'averageRating': avgRating});
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Review submitted')));
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -199,6 +209,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 final r = _reviews[index];
                 final timestamp = r['timestamp'] ?? '';
                 final rating = r['rating']?.toDouble() ?? 0.0;
+                final reviewer = r['userName'] ?? 'Anonymous';
+
                 return Card(
                   margin: EdgeInsets.symmetric(vertical: 6),
                   child: ListTile(
@@ -206,6 +218,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text('By: $reviewer'),
                         RatingBarIndicator(
                           rating: rating,
                           itemCount: 5,

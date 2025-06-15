@@ -6,9 +6,9 @@ class ReviewController {
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
 
   /// Fetch reviews for a specific restaurant
-  Future<List<Review>> fetchReviews(String restaurantId) async {
+  Future<List<Review>> fetchReviews(String businessId) async {
     try {
-      final snapshot = await _db.child('reviews/$restaurantId').get();
+      final snapshot = await _db.child('reviews/$businessId').get();
       if (snapshot.exists) {
         final data = Map<String, dynamic>.from(snapshot.value as Map);
         return data.entries.map((entry) {
@@ -24,11 +24,25 @@ class ReviewController {
   }
 
   /// Add a new review to a restaurant
-  Future<void> addReview(String restaurantId, Review review) async {
+  Future<void> addReview(String businessId, String userId, Review review) async {
     try {
-      await _db.child('reviews/$restaurantId').push().set(review.toMap());
+      // 1. Push review to reviews node
+      await _db.child('reviews/$businessId').push().set(review.toMap());
+
+      // 2. Also update user's personal review map
+      await _db.child('users/$userId/reviews/$businessId').set(review.comment);
     } catch (e) {
       print('Error adding review: $e');
     }
   }
+  /// Add or update a reply to a specific review
+  Future<void> addReplyToReview(String businessId, String reviewId, String reply) async {
+    try {
+      await _db.child('reviews/$businessId/$reviewId/reply').set(reply);
+      print('Reply added to review $reviewId');
+    } catch (e) {
+      print('Error adding reply: $e');
+    }
+  }
+
 }

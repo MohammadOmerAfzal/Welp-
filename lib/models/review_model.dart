@@ -1,4 +1,3 @@
-// ------------------ models/review_model.dart ------------------
 class Review {
   String id;
   String userId;
@@ -6,6 +5,7 @@ class Review {
   double rating;
   String comment;
   String imageUrl;
+  String? reply;
 
   Review({
     required this.id,
@@ -14,6 +14,7 @@ class Review {
     required this.rating,
     required this.comment,
     required this.imageUrl,
+    this.reply,
   });
 
   factory Review.fromMap(Map<String, dynamic> data, String docId) {
@@ -24,6 +25,7 @@ class Review {
       rating: (data['rating'] ?? 0).toDouble(),
       comment: data['comment'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
+      reply: data['reply'],
     );
   }
 
@@ -34,6 +36,7 @@ class Review {
       'rating': rating,
       'comment': comment,
       'imageUrl': imageUrl,
+      if (reply != null) 'reply': reply,
     };
   }
 }

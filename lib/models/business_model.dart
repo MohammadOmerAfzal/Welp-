@@ -1,5 +1,6 @@
 class Business {
   String id;
+  String ownerid;
   String name;
   String description;
   List<String> imageBase64List;
@@ -11,6 +12,7 @@ class Business {
 
   Business({
     required this.id,
+    required this.ownerid,
     required this.name,
     required this.description,
     required this.imageBase64List,
@@ -25,6 +27,7 @@ class Business {
     return Business(
       id: docId,
       name: data['name'] ?? '',
+      ownerid: data['ownerid'] ?? '',
       description: data['description'] ?? '',
       imageBase64List: List<String>.from(data['images'] ?? []),
       averageRating: (data['averageRating'] ?? 0).toDouble(),
@@ -37,6 +40,7 @@ class Business {
 
   Map<String, dynamic> toMap() {
     return {
+      'ownerid': ownerid,
       'name': name,
       'description': description,
       'images': imageBase64List,

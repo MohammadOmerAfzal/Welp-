@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
+import '../../models/user_model.dart';
+import '../../controllers/user_controller.dart';
+import '../../models/user_session.dart';
+
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -18,14 +23,16 @@ class _HomeScreenState extends State<HomeScreen> {
   FirebaseDatabase.instance.ref().child('businesses');
 
   Position? _currentPosition;
-  Set<String> _favorites = {};
+  late User _user;
   Set<String> _availableCategories = {};
+
+  final UserController _userController = UserController();
 
   @override
   void initState() {
     super.initState();
+    _user = UserSession.user!;
     _fetchCurrentLocation();
-    _loadFavorites();
   }
 
   Future<void> _fetchCurrentLocation() async {
@@ -43,24 +50,15 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _currentPosition = position);
   }
 
-  Future<void> _loadFavorites() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _toggleFavorite(String businessId) async {
+    await _userController.toggleFavorite(_user.username, businessId, _user.favorites);
+    // Fetch the updated user after toggle
+    final updatedUser = await _userController.getUser(_user.username);
     setState(() {
-      _favorites = prefs.getStringList('favorites')?.toSet() ?? {};
+      _user = updatedUser!;
     });
   }
 
-  Future<void> _toggleFavorite(String businessId) async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      if (_favorites.contains(businessId)) {
-        _favorites.remove(businessId);
-      } else {
-        _favorites.add(businessId);
-      }
-      prefs.setStringList('favorites', _favorites.toList());
-    });
-  }
 
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
     const double R = 6371;
@@ -150,13 +148,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 10),
-
-          // CATEGORY DROPDOWN
           _buildCategoryDropdown(),
-
           const SizedBox(height: 10),
-
-          // TAB ROW
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Padding(
@@ -171,10 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 10),
-
-          // BUSINESS LIST
           Expanded(
             child: StreamBuilder<DatabaseEvent>(
               stream: _businessRef.onValue,
@@ -194,27 +184,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     .contains(_searchText))
                     .toList();
 
-                // Build category list
                 _availableCategories = businessList
                     .map((b) => b['category']?.toString() ?? '')
                     .where((c) => c.isNotEmpty)
                     .toSet();
 
-                // Filter by selected category
                 if (_selectedCategory != null) {
                   businessList = businessList
                       .where((b) => b['category'] == _selectedCategory)
                       .toList();
                 }
 
-                // Filter for favorites
                 if (_selectedTab == 'Your favorites') {
                   businessList = businessList
-                      .where((b) => _favorites.contains(b['id']))
+                      .where((b) => _user.favorites.contains(b['id']))
                       .toList();
                 }
 
-                // NEAR YOU: Sort by proximity
                 if (_selectedTab == 'Near you' && _currentPosition != null) {
                   businessList = businessList.map((b) {
                     final lat = b['latitude'];
@@ -242,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemBuilder: (context, index) {
                     final business = businessList[index];
                     final avgRating = (business['averageRating'] ?? 0).toDouble();
-                    final isFavorite = _favorites.contains(business['id']);
+                    final isFavorite = _user.favorites.contains(business['id']);
 
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

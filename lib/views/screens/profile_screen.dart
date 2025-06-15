@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
 import '../../models/review_model.dart';
-import '../../../main.dart';
+import '../../models/user_session.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -29,8 +30,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       reviewData.forEach((restaurantId, reviews) {
         final restaurantReviews = Map<String, dynamic>.from(reviews);
         restaurantReviews.forEach((reviewId, review) {
-          final parsedReview = Review.fromMap(Map<String, dynamic>.from(review), reviewId);
-          if (parsedReview.userId == currentUserId) {
+          final parsedReview = Review.fromMap(
+            Map<String, dynamic>.from(review),
+            reviewId,
+          );
+
+          if (parsedReview.userId == UserSession.userId) {
             allReviews.add(parsedReview);
           }
         });
@@ -53,8 +58,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: Column(
         children: [
           ListTile(
-            title: Text(currentUserName),
-            subtitle: Text(currentUserEmail),
+            title: Text(UserSession.userName),
+            subtitle: Text(UserSession.userEmail),
             trailing: IconButton(
               icon: Icon(Icons.logout),
               onPressed: _logout,

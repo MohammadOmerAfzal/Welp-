@@ -1,17 +1,22 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_database/firebase_database.dart';
-import '../main.dart';
+
+import '../models/user_session.dart';
+import '../models/user_model.dart' as app_models;
+import '../controllers/user_controller.dart';
 
 class AuthController {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final fb_auth.FirebaseAuth _auth = fb_auth.FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
+  final UserController _userController = UserController();
 
   Future<String?> loginWithGoogleAndRedirectFlags() async {
     try {
       print('➡️ Starting Google sign-in');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
       if (googleUser == null) {
         print('❌ Google sign-in cancelled by user');
         return 'cancelled';
@@ -20,52 +25,69 @@ class AuthController {
       print('✅ Google user selected: ${googleUser.email}');
       final googleAuth = await googleUser.authentication;
 
-      final credential = GoogleAuthProvider.credential(
+      final credential = fb_auth.GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
       print('🔐 Signing in with Firebase');
-      final userCredential = await _auth.signInWithCredential(credential);
-      final user = userCredential.user;
+      final fb_auth.UserCredential userCredential =
+      await _auth.signInWithCredential(credential);
+      final fb_auth.User? user = userCredential.user;
 
       if (user == null) {
         print('❌ Firebase user is null');
         return 'null_user';
       }
 
-      currentUserId = user.uid;
-      currentUserName = user.displayName ?? 'User';
-      currentUserEmail = user.email ?? 'email@example.com';
+      // Set session
+      UserSession.userId = user.uid;
+      UserSession.userName = user.displayName ?? 'User';
+      UserSession.userEmail = user.email ?? 'email@example.com';
 
-      print('👤 User authenticated: $currentUserEmail');
+      print('👤 Authenticated: ${UserSession.userEmail}');
 
-      final userRef = _dbRef.child('users').child(currentUserId);
+      final userRef = _dbRef.child('users').child(UserSession.userId);
       final userSnapshot = await userRef.get();
 
-      print('📡 Checking DB entry...');
-
       if (!userSnapshot.exists) {
-        print('🆕 New user — creating DB record');
+        print('🆕 New user — creating record');
         await userRef.set({
-          'name': currentUserName,
-          'email': currentUserEmail,
+          'username': UserSession.userName,
+          'email': UserSession.userEmail,
+          'password': '',
+          'reviews': {},
+          'favorites': [],
+          'businesses': 0,
           'isAdmin': false,
-          'isOwner': false,
+          'userType': 0,
         });
-        isAdmin = false;
-        isOwner = false;
       } else {
-        print('✅ User exists in DB');
-        final data = userSnapshot.value as Map<dynamic, dynamic>?;
-        isAdmin = data?['isAdmin'] == true;
-        isOwner = data?['isOwner'] == true;
+        print('✅ Existing user found');
       }
 
-      print('🚀 Redirecting to ${isAdmin ? '/admin' : isOwner ? '/owner' : '/home'}');
-      if (isAdmin) return '/admin';
-      if (isOwner) return '/owner';
-      return '/home';
+      // ✅ FIXED: Use userId instead of username
+      final app_models.User? userObject =
+      await _userController.getUser(UserSession.userId);
+
+      if (userObject == null) {
+        print('❌ Could not retrieve user object from DB');
+        return 'error';
+      }
+
+      UserSession.user = userObject;
+      UserSession.isAdmin = userObject.isAdmin;
+      UserSession.isOwner = userObject.userType == 1;
+
+      final redirectRoute = userObject.isAdmin
+          ? '/admin'
+          : userObject.userType == 1
+          ? '/owner'
+          : '/home';
+
+      print('🚀 Redirecting to $redirectRoute');
+      return redirectRoute;
+
     } catch (e) {
       print('❌ Exception during sign-in: $e');
       return 'error';
@@ -82,6 +104,6 @@ class AuthController {
     }
   }
 
-  User? get currentUser => _auth.currentUser;
+  fb_auth.User? get currentUser => _auth.currentUser;
   bool get isSignedIn => _auth.currentUser != null;
 }
