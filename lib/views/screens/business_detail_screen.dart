@@ -12,6 +12,7 @@ import '../../models/user_session.dart';
 class BusinessDetailScreen extends StatefulWidget {
   final String businessId;
 
+
   const BusinessDetailScreen({required this.businessId});
 
   @override
@@ -19,6 +20,7 @@ class BusinessDetailScreen extends StatefulWidget {
 }
 
 class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
+
   String _formatTimestamp(String? timestamp) {
     if (timestamp == null || timestamp.isEmpty) return 'Unknown date';
 
@@ -46,6 +48,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     _businessRef = FirebaseDatabase.instance.ref().child('businesses').child(widget.businessId);
     _loadBusiness();
     _loadReviews();
+
   }
 
   Future<void> _loadBusiness() async {
@@ -91,6 +94,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     await _updateAverageRating();
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Review submitted')));
+
+    Navigator.pushNamed(context, '/home');
+
   }
 
   Future<void> _updateAverageRating() async {
@@ -211,16 +217,19 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 final r = _reviews[index];
                 final rating = r.rating ?? 0.0;
 
+
                 final formattedDate = _formatTimestamp(r.timestamp);
 
 
                 return Card(
                   margin: EdgeInsets.symmetric(vertical: 6),
                   child: ListTile(
-                    title: Text(r.comment ?? ''),
+                    title: Text(r.comment ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text("Reply: ${ (r.reply == '') ? 'No replies yet' : r.reply! }", style: const TextStyle(color: Colors.green)),
+
                         SizedBox(height: 4),
                         RatingBarIndicator(
                           rating: rating,
@@ -230,7 +239,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         ),
                         SizedBox(height: 4),
                         Text('By ${r.userName ?? 'Anonymous'} • $formattedDate',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            style: TextStyle(fontSize: 12,fontStyle: FontStyle.italic , color: Colors.grey[600])),
                       ],
                     ),
                   ),

@@ -1,5 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:semesterproject/views/screens/about_us.dart';
+import 'package:semesterproject/views/screens/owner_home_screen.dart';
 import 'views/screens/login_screen.dart';
 import 'views/screens/business_detail_screen.dart';
 import 'views/screens/profile_screen.dart';
@@ -33,6 +35,8 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => ProfileScreen(),
         '/admin': (context) => AdminPanelScreen(),
         '/owner': (context) => OwnerPanelScreen(),
+        '/ownerhome' : (context) => OwnerHomePage(),
+        '/aboutus' : (context) => AboutUsScreen(),
 
       },
       onGenerateRoute: (settings) {

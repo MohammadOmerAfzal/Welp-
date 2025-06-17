@@ -39,6 +39,15 @@ class UserController {
     }
     await updateFavorites(userId, updatedFavorites);
   }
+  Future<void> makeOwner(String userId) async {
+    try {
+      await _db.child(userId).update({'userType': 1});
+      print('✅ User $userId is now an owner.');
+    } catch (e) {
+      print('❌ Error making user owner: $e');
+    }
+  }
+
 
   Future<void> updateUser(User user) async {
     try {

@@ -83,7 +83,7 @@ class AuthController {
       final redirectRoute = userObject.isAdmin
           ? '/admin'
           : userObject.userType == 1
-          ? '/owner'
+          ? '/ownerhome'
           : '/home';
 
       print('🚀 Redirecting to $redirectRoute');

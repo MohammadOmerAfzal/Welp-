@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'dart:math';
+import '../../models/review_model.dart';
 import '../../models/user_model.dart';
 import '../../controllers/user_controller.dart';
 import '../../models/user_session.dart';
@@ -21,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   FirebaseDatabase.instance.ref().child('businesses');
   Position? _currentPosition;
   late User _user;
+  late Future<List<Review>> _userReviewsFuture;
   Set<String> _availableCategories = {};
   final UserController _userController = UserController();
 
@@ -28,8 +31,54 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _user = UserSession.user!;
+    _userReviewsFuture = _fetchUserReviews(_user.userId);
     _fetchCurrentLocation();
   }
+
+
+
+  Future<List<Review>> _fetchUserReviews(String userId) async {
+    final snapshot = await FirebaseDatabase.instance.ref('reviews').get();
+    List<Review> allReviews = [];
+
+    if (snapshot.exists && snapshot.value is Map) {
+      final reviewData = Map<String, dynamic>.from(snapshot.value as Map);
+
+      reviewData.forEach((restaurantId, reviews) {
+        final restaurantReviews = Map<String, dynamic>.from(reviews);
+        restaurantReviews.forEach((reviewId, review) {
+          final parsedReview = Review.fromMap(
+            Map<String, dynamic>.from(review),
+            reviewId,
+          );
+
+          if (parsedReview.userId == userId) {
+            allReviews.add(parsedReview);
+          }
+        });
+      });
+    }
+
+    return allReviews;
+  }
+
+  Future<void> _handleRegisterBusiness() async {
+    if (_user.userType == 0) {
+      print("MAKING AN OWNER");
+      await _userController.makeOwner(_user.userId);
+
+      // 🔔 Fetch the updated user from the database
+      final updatedUser = await _userController.getUser(_user.userId);
+      setState(() {
+        _user = updatedUser!;
+      });
+    } else {
+      print("ALREADY AN OWNER");
+    }
+
+    Navigator.pushNamedAndRemoveUntil(context, '/ownerhome', (_) => false);
+  }
+
 
   Future<void> _fetchCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -139,14 +188,83 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Welp!'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () => Navigator.pushNamed(context, '/profile'),
+        drawer: Drawer(
+          child: SafeArea(
+            child: Column(
+              children: [
+
+                UserAccountsDrawerHeader(
+                  accountName: Text(UserSession.user?.username ?? 'User Name'),
+                  accountEmail: const Text(''), // ✅ Avoid null issues
+                  currentAccountPicture: CircleAvatar(
+                    backgroundColor: Colors.blue,
+                    child: Text(
+                      (UserSession.user?.username.isNotEmpty == true)
+                          ? UserSession.user!.username[0]
+                          : 'U',
+                      style: const TextStyle(fontSize: 24, color: Colors.white),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.business_sharp),
+                  title: const Text('Register a business'),
+                  onTap: _handleRegisterBusiness,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    'Your Reviews',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  child: FutureBuilder<List<Review>>(
+                    future: _fetchUserReviews(UserSession.userId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Center(child: Text('No reviews yet.'));
+                      } else {
+                        return ListView.builder(
+                          itemCount: snapshot.data!.length,
+                          itemBuilder: (context, index) {
+                            final review = snapshot.data![index];
+                            return ListTile(
+                              leading: const Icon(Icons.rate_review),
+                              title: Text("${review.rating} ★"),
+                              subtitle: Text(review.comment),
+                            );
+                          },
+                        );
+                      }
+                    },
+                  ),
+                ),
+                const Spacer(), // ✅ Pushes Logout to bottom
+                ListTile(
+                  leading: const Icon(Icons.verified_user),
+                  title: const Text('About Us'),
+                  onTap: () {
+                    Navigator.pushNamedAndRemoveUntil(context, '/aboutus', (_) => false);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Logout'),
+                  onTap: () async {
+                    await FirebaseAuth.instance.signOut();
+                    Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+                  },
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
+
+        appBar: AppBar(
+          title: const Text('Welp!')
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

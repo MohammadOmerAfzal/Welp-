@@ -28,7 +28,8 @@ class Review {
       rating: (data['rating'] ?? 0).toDouble(),
       comment: data['comment'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
-      reply: data['reply'] ?? ' ', timestamp: data['timestamp'] ?? '',
+      reply: data['reply'] ?? '',
+      timestamp: data['timestamp'] ?? '',
     );
   }
 
