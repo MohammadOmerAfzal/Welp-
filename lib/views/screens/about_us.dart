@@ -40,42 +40,91 @@ class AboutUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('About Us')),
+      backgroundColor: const Color(0xFFF2F6FC),
+      appBar: AppBar(
+        title: const Text('About Us'),
+        backgroundColor: const Color(0xFF1565C0),
+        foregroundColor: Colors.white,
+        elevation: 4,
+      ),
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
               itemCount: team.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
                 final member = team[index];
-                return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFe3f2fd), Color(0xFFbbdefb)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: const EdgeInsets.all(16.0),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundImage: NetworkImage(member['avatar']!),
+                        ClipOval(
+                          child: Image.network(
+                            member['avatar']!,
+                            height: 80,
+                            width: 80,
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                        SizedBox(width: 16),
+                        const SizedBox(width: 20),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(member['name']!, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                              Text(member['email']!, style: TextStyle(color: Colors.grey[700])),
-                              GestureDetector(
+                              Text(
+                                member['name']!,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0D47A1),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                member['email']!,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              InkWell(
                                 onTap: () => _launchUrl(member['github']!),
-                                child: Text(
-                                  'GitHub Profile',
-                                  style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                                child: Row(
+                                  children: const [
+                                    Icon(Icons.link, size: 16, color: Color(0xFF1E88E5)),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'GitHub Profile',
+                                      style: TextStyle(
+                                        color: Color(0xFF1E88E5),
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -83,19 +132,19 @@ class AboutUsScreen extends StatelessWidget {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  textStyle: const TextStyle(fontSize: 16),
-                ),
-                child: const Text('Go to Home'),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false),
+              icon: const Icon(Icons.home),
+              label: const Text('Go to Home'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1976D2),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                textStyle: const TextStyle(fontSize: 16),
               ),
             ),
           ),

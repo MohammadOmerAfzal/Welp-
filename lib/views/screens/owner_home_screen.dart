@@ -50,39 +50,41 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Colors.blue.shade700;
+
     return Scaffold(
       drawer: Drawer(
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  'Profile',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  '👤 Profile',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: themeColor),
                 ),
               ),
-              const Divider(),
+              Divider(),
               ListTile(
-                leading: const Icon(Icons.home),
-                title: const Text('Home'),
+                leading: Icon(Icons.home, color: themeColor),
+                title: Text('Home'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.pushNamed(context, '/home');
                 },
               ),
-              const Spacer(),
+              Spacer(),
               ListTile(
-                leading: const Icon(Icons.verified_user),
-                title: const Text('About Us'),
+                leading: Icon(Icons.verified_user, color: themeColor),
+                title: Text('About Us'),
                 onTap: () {
                   Navigator.pushNamedAndRemoveUntil(context, '/aboutus', (_) => false);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('Logout'),
+                leading: Icon(Icons.logout, color: themeColor),
+                title: Text('Logout'),
                 onTap: () => _logout(context),
               ),
             ],
@@ -90,14 +92,15 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
         ),
       ),
       appBar: AppBar(
-        title: Text("Welcome, ${fb_auth.FirebaseAuth.instance.currentUser?.displayName ?? 'Owner'}"),
+        backgroundColor: themeColor,
+        title: Text("👋 Welcome, ${fb_auth.FirebaseAuth.instance.currentUser?.displayName ?? 'Owner'}"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator())
             : _businesses.isEmpty
-            ? const Center(child: Text("No businesses registered yet."))
+            ? Center(child: Text("📭 No businesses registered yet."))
             : ListView.builder(
           itemCount: _businesses.length,
           itemBuilder: (context, index) {
@@ -106,11 +109,12 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: themeColor,
         onPressed: () {
           Navigator.pushNamed(context, '/owner').then((_) => _loadUserAndBusinesses());
         },
-        icon: const Icon(Icons.add_business),
-        label: const Text('Add Business'),
+        icon: Icon(Icons.add_business, color: Colors.white),
+        label: Text('Add Business',style: TextStyle(color: Colors.white),),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
