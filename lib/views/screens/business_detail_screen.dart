@@ -123,9 +123,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(name),
-        backgroundColor: Colors.blue[800],
-        actions: [Icon(Icons.business_center)],
+        title: Text(name,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Colors.white,
+          )),
+        backgroundColor: Colors.deepPurple,
+
+        // actions: [Icon(Icons.business_center)],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -143,24 +149,24 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               )
                   : Container(
                 height: 200,
-                color: Colors.grey,
+                color: Colors.deepPurple,
                 child: Icon(Icons.image_not_supported, size: 100, color: Colors.white),
               ),
             ),
             SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.storefront, color: Colors.blue[800]),
+                Icon(Icons.storefront, color: Colors.deepPurple),
                 SizedBox(width: 8),
-                Text(name, style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.blue[800], fontWeight: FontWeight.bold)),
+                Text(name, style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
               ],
             ),
             SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.category, size: 18, color: Colors.grey[600]),
+                Icon(Icons.category, size: 18, color: Colors.deepPurpleAccent),
                 SizedBox(width: 4),
-                Text('Category: $category', style: TextStyle(color: Colors.grey[700]))
+                Text('Category: $category', style: TextStyle(color: Colors.deepPurpleAccent))
               ],
             ),
             SizedBox(height: 8),
@@ -168,9 +174,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             SizedBox(height: 20),
             Row(
               children: [
-                Icon(Icons.location_on, color: Colors.blue[800]),
+                Icon(Icons.location_on, color: Colors.deepPurple),
                 SizedBox(width: 8),
-                Text('Location', style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.blue[800]))
+                Text('Location', style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.deepPurple))
               ],
             ),
             SizedBox(height: 8),
@@ -199,9 +205,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             Divider(),
             Row(
               children: [
-                Icon(Icons.rate_review, color: Colors.blue[800]),
+                Icon(Icons.rate_review, color: Colors.deepPurple),
                 SizedBox(width: 8),
-                Text('Write a Review', style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.blue[800]))
+                Text('Write a Review', style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.deepPurple))
               ],
             ),
             SizedBox(height: 8),
@@ -221,25 +227,25 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               decoration: InputDecoration(
                 hintText: 'Enter your review...',
                 filled: true,
-                fillColor: Colors.blue[50],
+                fillColor: Colors.purple[50],
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
               maxLines: 3,
             ),
             SizedBox(height: 10),
             ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
               onPressed: _submitReview,
-              icon: Icon(Icons.send),
-              label: Text('Submit Review', style:TextStyle(color: Colors.black,fontWeight: FontWeight.bold,)),
+              icon: Icon(Icons.send, color: Colors.white,),
+              label: Text('Submit Review', style:TextStyle(color: Colors.white,fontWeight: FontWeight.bold,)),
             ),
             SizedBox(height: 30),
             Divider(),
             Row(
               children: [
-                Icon(Icons.comment, color: Colors.blue[800]),
+                Icon(Icons.comment, color: Colors.deepPurple),
                 SizedBox(width: 8),
-                Text('Reviews', style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.blue[800]))
+                Text('Reviews', style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.deepPurple))
               ],
             ),
             SizedBox(height: 8),
@@ -265,10 +271,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.person, size: 20, color: Colors.blue),
+                            Icon(Icons.person, size: 20, color: Colors.deepPurple),
                             SizedBox(width: 6),
-                            Text('By ${r.userName ?? 'Anonymous'} • $formattedDate',
-                                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey[600])),
+                            Text('${r.userName ?? 'Anonymous'} • $formattedDate',
+                                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.deepPurple)),
                           ],
                         ),
                         SizedBox(height: 6),
@@ -281,8 +287,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           itemBuilder: (context, _) => Icon(Icons.star, color: Colors.amber),
                         ),
                         SizedBox(height: 4),
-                        Text("Reply: ${ (r.reply == '') ? 'No replies yet' : r.reply! }",
-                            style: const TextStyle(color: Colors.green)),
+                        Text("\nOwner's Reply:\n${ (r.reply == '') ? 'No replies yet' : r.reply! }",
+                            style: const TextStyle(color: Colors.deepPurpleAccent)),
                       ],
                     ),
                   ),

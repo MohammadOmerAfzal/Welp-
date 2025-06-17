@@ -74,8 +74,7 @@ class ForYouSection extends StatelessWidget {
                 color: Colors.white,
                 child: InkWell(
                   onTap: () {
-                    // Replace with actual navigation logic
-                    // Navigator.pushNamed(context, '/business/${business.id}');
+                    Navigator.pushNamed(context, '/business/${business.id}');
                   },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
