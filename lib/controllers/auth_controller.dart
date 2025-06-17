@@ -14,6 +14,9 @@ class AuthController {
 
   Future<String?> loginWithGoogleAndRedirectFlags() async {
     try {
+      print('➡️ Signing out previous Google session to force account picker');
+      await _googleSignIn.signOut(); // Force show account picker
+
       print('➡️ Starting Google sign-in');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
@@ -40,7 +43,6 @@ class AuthController {
         return 'null_user';
       }
 
-      // Set session
       UserSession.userId = user.uid;
       UserSession.userName = user.displayName ?? 'User';
       UserSession.userEmail = user.email ?? 'email@example.com';
@@ -67,7 +69,6 @@ class AuthController {
         print('✅ Existing user found');
       }
 
-      // ✅ FIXED: Use userId instead of username
       final app_models.User? userObject =
       await _userController.getUser(UserSession.userId);
 
@@ -88,12 +89,12 @@ class AuthController {
 
       print('🚀 Redirecting to $redirectRoute');
       return redirectRoute;
-
     } catch (e) {
       print('❌ Exception during sign-in: $e');
       return 'error';
     }
   }
+
 
   Future<void> signOut() async {
     try {

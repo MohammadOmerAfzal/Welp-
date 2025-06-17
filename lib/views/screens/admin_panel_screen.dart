@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:typed_data';
-
+import 'package:google_fonts/google_fonts.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   @override
@@ -36,41 +34,67 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     }
   }
 
-  Widget _buildBusinessTile(Map<String, dynamic> data) {
+  Future<void> _deleteBusiness(String businessId) async {
+    try {
+      await _businessesRef.child(businessId).remove();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('🗑️ Business deleted')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Failed to delete business: $e')),
+      );
+    }
+  }
+
+  Widget _buildBusinessTile(String id, Map<String, dynamic> data) {
     final name = data['name'] ?? 'Unnamed';
     final lat = data['latitude'];
     final lng = data['longitude'];
     final imageList = data['images'] as List<dynamic>?;
 
-    Widget imageWidget = Icon(Icons.image_not_supported);
+    Widget imageWidget = Icon(Icons.image_not_supported, color: Colors.grey);
     if (imageList != null && imageList.isNotEmpty) {
-      imageWidget = FutureBuilder<Uint8List>(
-        future: Future(() => base64Decode(imageList.first)),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      final imageUrl = imageList.first.toString();
+      imageWidget = ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          imageUrl,
+          width: 60,
+          height: 60,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Icon(Icons.broken_image),
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
             return SizedBox(
-              width: 50,
-              height: 50,
+              width: 60,
+              height: 60,
               child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             );
-          } else if (snapshot.hasError || !snapshot.hasData) {
-            return Icon(Icons.broken_image);
-          } else {
-            return Image.memory(snapshot.data!, width: 50, height: 50, fit: BoxFit.cover);
-          }
-        },
+          },
+        ),
       );
     }
 
-
     return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 6,
+      color: Colors.white,
+      shadowColor: Colors.deepPurpleAccent.withOpacity(0.3),
       child: ListTile(
         leading: imageWidget,
-        title: Text(name),
+        title: Text(name, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16)),
         subtitle: Text(
           (lat != null && lng != null)
               ? 'Lat: ${lat.toStringAsFixed(4)}, Lng: ${lng.toStringAsFixed(4)}'
               : 'Location: Not available',
+          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[700]),
+        ),
+        trailing: IconButton(
+          icon: Icon(Icons.delete, color: Colors.red),
+          tooltip: 'Delete Business',
+          onPressed: () => _deleteBusiness(id),
         ),
       ),
     );
@@ -83,9 +107,14 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     final isOwner = data['isOwner'] == true;
 
     return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 6,
+      color: Colors.white,
+      shadowColor: Colors.deepPurple.withOpacity(0.2),
       child: ListTile(
-        title: Text(name),
-        subtitle: Text(email),
+        title: Text(name, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
+        subtitle: Text(email, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[700])),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -113,8 +142,11 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFF2F3F8),
       appBar: AppBar(
-        title: Text('Admin Panel'),
+        backgroundColor: Colors.deepPurpleAccent,
+        elevation: 4,
+        title: Text('Admin Panel', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         actions: [
           IconButton(
             icon: Icon(Icons.logout),
@@ -124,12 +156,14 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('📍 Businesses List', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 10),
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('📍 Businesses List', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 22)),
+            ),
             StreamBuilder<DatabaseEvent>(
               stream: _businessesRef.onValue,
               builder: (context, snapshot) {
@@ -137,9 +171,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   return Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
-                  return Center(child: Text('No businesses found.'));
+                  return Center(child: Text('No businesses found.', style: GoogleFonts.poppins()));
                 }
-
 
                 final businesses = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
                 final list = businesses.entries.toList();
@@ -149,15 +182,18 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   physics: NeverScrollableScrollPhysics(),
                   itemCount: list.length,
                   itemBuilder: (context, index) {
+                    final id = list[index].key;
                     final data = Map<String, dynamic>.from(list[index].value);
-                    return _buildBusinessTile(data);
+                    return _buildBusinessTile(id, data);
                   },
                 );
               },
             ),
-            Divider(height: 40),
-            Text('👥 User Management', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 10),
+            const Divider(height: 40),
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('👥 User Management', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 22)),
+            ),
             StreamBuilder<DatabaseEvent>(
               stream: _usersRef.onValue,
               builder: (context, snapshot) {
@@ -165,9 +201,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   return Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
-                  return Center(child: Text('No users found.'));
+                  return Center(child: Text('No users found.', style: GoogleFonts.poppins()));
                 }
-
 
                 final users = Map<String, dynamic>.from(snapshot.data!.snapshot.value as Map);
                 final entries = users.entries.toList();

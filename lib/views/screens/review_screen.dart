@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/review_controller.dart';
 import '../../models/review_model.dart';
 
@@ -48,34 +49,76 @@ class _ReviewScreenState extends State<ReviewScreen> {
     _replyControllers.putIfAbsent(review.id, () => TextEditingController());
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            Text(review.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text('Rating: ${review.rating} ★'),
-            const SizedBox(height: 4),
-            Text('comment:${review.comment}'),
-            if (review.reply != null) ...[
-              const SizedBox(height: 8),
-              Text('Reply: ${review.reply!}', style: const TextStyle(color: Colors.green)),
-            ],
-            const SizedBox(height: 8),
-            TextField(
-              controller: _replyControllers[review.id],
-              decoration: const InputDecoration(
-                labelText: 'Add/Update Reply',
-                border: OutlineInputBorder(),
+            Text(
+              review.userName,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueAccent,
               ),
             ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () => _submitReply(review.id),
-              child: const Text('Submit Reply'),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.star, color: Colors.orangeAccent, size: 18),
+                const SizedBox(width: 4),
+                Text(
+                  '${review.rating}',
+                  style: GoogleFonts.poppins(fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              review.comment,
+              style: GoogleFonts.poppins(fontSize: 15),
+            ),
+            if (review.reply != null && review.reply!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  "Owner's Reply: ${review.reply!}",
+                  style: GoogleFonts.poppins(color: Colors.green.shade800),
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
+            TextField(
+              controller: _replyControllers[review.id],
+              decoration: InputDecoration(
+                labelText: 'Add or Update Reply',
+                labelStyle: GoogleFonts.poppins(),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: () => _submitReply(review.id),
+                icon: Icon(Icons.reply, size: 18),
+                label: Text('Submit Reply', style: GoogleFonts.poppins()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+              ),
             ),
           ],
         ),
@@ -86,7 +129,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Business Reviews')),
+      backgroundColor: const Color(0xFFF5F4FB),
+      appBar: AppBar(
+        title: const Text('Business Reviews'),
+        backgroundColor: Colors.blueAccent,
+      ),
       body: FutureBuilder<List<Review>>(
         future: _reviewsFuture,
         builder: (context, snapshot) {

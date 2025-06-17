@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -8,10 +7,8 @@ import '../../controllers/review_controller.dart';
 import '../../models/review_model.dart';
 import '../../models/user_session.dart';
 
-
 class BusinessDetailScreen extends StatefulWidget {
   final String businessId;
-
 
   const BusinessDetailScreen({required this.businessId});
 
@@ -20,25 +17,10 @@ class BusinessDetailScreen extends StatefulWidget {
 }
 
 class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
-
-  String _formatTimestamp(String? timestamp) {
-    if (timestamp == null || timestamp.isEmpty) return 'Unknown date';
-
-    try {
-      final date = DateTime.parse(timestamp).toLocal();
-      return '${date.year}-${_twoDigits(date.month)}-${_twoDigits(date.day)}';
-    } catch (e) {
-      print('Invalid timestamp format: $timestamp');
-      return 'Unknown date';
-    }
-  }
-
-  String _twoDigits(int n) => n.toString().padLeft(2, '0');
-
   late DatabaseReference _businessRef;
   Map<String, dynamic>? _business;
   final TextEditingController _reviewController = TextEditingController();
-  double _rating = 3.0;
+  double _rating = 0.0;
   List<Review> _reviews = [];
   final ReviewController _reviewControllerLogic = ReviewController();
 
@@ -48,7 +30,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     _businessRef = FirebaseDatabase.instance.ref().child('businesses').child(widget.businessId);
     _loadBusiness();
     _loadReviews();
-
   }
 
   Future<void> _loadBusiness() async {
@@ -63,7 +44,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   Future<void> _loadReviews() async {
     final reviews = await _reviewControllerLogic.fetchReviews(widget.businessId);
     setState(() {
-      _reviews = reviews.reversed.toList(); // latest first
+      _reviews = reviews.reversed.toList();
     });
   }
 
@@ -96,7 +77,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Review submitted')));
 
     Navigator.pushNamed(context, '/home');
-
   }
 
   Future<void> _updateAverageRating() async {
@@ -111,6 +91,20 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     await _businessRef.update({'averageRating': avgRating});
   }
 
+  String _formatTimestamp(String? timestamp) {
+    if (timestamp == null || timestamp.isEmpty) return 'Unknown date';
+
+    try {
+      final date = DateTime.parse(timestamp).toLocal();
+      return '${date.year}-${_twoDigits(date.month)}-${_twoDigits(date.day)}';
+    } catch (e) {
+      print('Invalid timestamp format: $timestamp');
+      return 'Unknown date';
+    }
+  }
+
+  String _twoDigits(int n) => n.toString().padLeft(2, '0');
+
   @override
   Widget build(BuildContext context) {
     if (_business == null) {
@@ -123,57 +117,93 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     final name = _business!['name'] ?? 'Unnamed';
     final category = _business!['category'] ?? 'Unknown';
     final description = _business!['description'] ?? '';
-    final base64Image = _business!['image'];
+    final images = List<String>.from(_business!['images'] ?? []);
     final latitude = _business!['latitude'];
     final longitude = _business!['longitude'];
 
     return Scaffold(
-      appBar: AppBar(title: Text(name)),
+      appBar: AppBar(
+        title: Text(name),
+        backgroundColor: Colors.blue[800],
+        actions: [Icon(Icons.business_center)],
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            base64Image != null
-                ? Image.memory(
-              base64Decode(base64Image),
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            )
-                : Container(height: 200, color: Colors.grey, child: Icon(Icons.image, size: 100)),
-
-            SizedBox(height: 12),
-            Text(name, style: Theme.of(context).textTheme.titleMedium),
-            Text('Category: $category', style: TextStyle(color: Colors.grey[700])),
-            SizedBox(height: 8),
-            Text(description),
-
-            SizedBox(height: 20),
-            Text('Location', style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(
-              height: 200,
-              child: latitude != null && longitude != null
-                  ? GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(latitude, longitude),
-                  zoom: 14,
-                ),
-                markers: {
-                  Marker(
-                    markerId: MarkerId('business'),
-                    position: LatLng(latitude, longitude),
-                  ),
-                },
-                onMapCreated: (_) {},
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: images.isNotEmpty
+                  ? Image.network(
+                images.first,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
               )
-                  : Center(child: Text('Location not available')),
+                  : Container(
+                height: 200,
+                color: Colors.grey,
+                child: Icon(Icons.image_not_supported, size: 100, color: Colors.white),
+              ),
             ),
-
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.storefront, color: Colors.blue[800]),
+                SizedBox(width: 8),
+                Text(name, style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.blue[800], fontWeight: FontWeight.bold)),
+              ],
+            ),
+            SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.category, size: 18, color: Colors.grey[600]),
+                SizedBox(width: 4),
+                Text('Category: $category', style: TextStyle(color: Colors.grey[700]))
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(description, style: TextStyle(fontSize: 16)),
+            SizedBox(height: 20),
+            Row(
+              children: [
+                Icon(Icons.location_on, color: Colors.blue[800]),
+                SizedBox(width: 8),
+                Text('Location', style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.blue[800]))
+              ],
+            ),
+            SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                height: 200,
+                child: latitude != null && longitude != null
+                    ? GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(latitude, longitude),
+                    zoom: 14,
+                  ),
+                  markers: {
+                    Marker(
+                      markerId: MarkerId('business'),
+                      position: LatLng(latitude, longitude),
+                    ),
+                  },
+                  onMapCreated: (_) {},
+                )
+                    : Center(child: Text('Location not available')),
+              ),
+            ),
             SizedBox(height: 24),
             Divider(),
-            Text('Write a Review', style: Theme.of(context).textTheme.titleMedium),
-
+            Row(
+              children: [
+                Icon(Icons.rate_review, color: Colors.blue[800]),
+                SizedBox(width: 8),
+                Text('Write a Review', style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.blue[800]))
+              ],
+            ),
             SizedBox(height: 8),
             RatingBar.builder(
               initialRating: _rating,
@@ -185,27 +215,33 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               itemBuilder: (context, _) => Icon(Icons.star, color: Colors.amber),
               onRatingUpdate: (rating) => setState(() => _rating = rating),
             ),
-
             SizedBox(height: 10),
             TextField(
               controller: _reviewController,
               decoration: InputDecoration(
                 hintText: 'Enter your review...',
-                border: OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.blue[50],
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
               maxLines: 3,
             ),
-
             SizedBox(height: 10),
             ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
               onPressed: _submitReview,
               icon: Icon(Icons.send),
-              label: Text('Submit Review'),
+              label: Text('Submit Review', style:TextStyle(color: Colors.black,fontWeight: FontWeight.bold,)),
             ),
-
             SizedBox(height: 30),
             Divider(),
-            Text('Reviews', style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              children: [
+                Icon(Icons.comment, color: Colors.blue[800]),
+                SizedBox(width: 8),
+                Text('Reviews', style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.blue[800]))
+              ],
+            ),
             SizedBox(height: 8),
             _reviews.isEmpty
                 ? Text('No reviews yet.')
@@ -216,20 +252,27 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               itemBuilder: (context, index) {
                 final r = _reviews[index];
                 final rating = r.rating ?? 0.0;
-
-
                 final formattedDate = _formatTimestamp(r.timestamp);
-
 
                 return Card(
                   margin: EdgeInsets.symmetric(vertical: 6),
-                  child: ListTile(
-                    title: Text(r.comment ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Reply: ${ (r.reply == '') ? 'No replies yet' : r.reply! }", style: const TextStyle(color: Colors.green)),
-
+                        Row(
+                          children: [
+                            Icon(Icons.person, size: 20, color: Colors.blue),
+                            SizedBox(width: 6),
+                            Text('By ${r.userName ?? 'Anonymous'} • $formattedDate',
+                                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey[600])),
+                          ],
+                        ),
+                        SizedBox(height: 6),
+                        Text(r.comment ?? '', style: TextStyle(fontWeight: FontWeight.w600)),
                         SizedBox(height: 4),
                         RatingBarIndicator(
                           rating: rating,
@@ -238,8 +281,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           itemBuilder: (context, _) => Icon(Icons.star, color: Colors.amber),
                         ),
                         SizedBox(height: 4),
-                        Text('By ${r.userName ?? 'Anonymous'} • $formattedDate',
-                            style: TextStyle(fontSize: 12,fontStyle: FontStyle.italic , color: Colors.grey[600])),
+                        Text("Reply: ${ (r.reply == '') ? 'No replies yet' : r.reply! }",
+                            style: const TextStyle(color: Colors.green)),
                       ],
                     ),
                   ),

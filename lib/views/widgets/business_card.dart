@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../models/business_model.dart';
 
@@ -10,11 +9,17 @@ class BusinessCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageWidget = business.imageBase64List.isNotEmpty
-        ? Image.memory(
-      base64Decode(business.imageBase64List.first),
+        ? Image.network(
+      business.imageBase64List.first,
       width: 60,
       height: 60,
       fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: 60,
+        height: 60,
+        color: Colors.grey[300],
+        child: const Icon(Icons.broken_image),
+      ),
     )
         : Container(
       width: 60,
